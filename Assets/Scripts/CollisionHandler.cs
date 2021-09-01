@@ -1,9 +1,7 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-
+using UnityEngine.UI;
 
 public class CollisionHandler : MonoBehaviour
 {
@@ -12,19 +10,26 @@ public class CollisionHandler : MonoBehaviour
     [SerializeField] AudioClip crashSound;
     [SerializeField] ParticleSystem successParticles;
     [SerializeField] ParticleSystem crashParticles;
+    [SerializeField] Text crashText;
 
     private AudioSource audioSource;
-    private bool isTransitioning = false;
-    private bool collisionDisabled = false;
+    private bool isTransitioning = false; // Performing a coroutine, stop other routines from running
+    private bool collisionDisabled = false; // debug feature
+    private static int numOfCrashes = 0;
+    bool isDebuging = false; // unlock debugging options
 
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
+        crashText.text = " Crashes " + numOfCrashes;
     }
 
     void Update()
     {
-        RespondToDebugKeys(); // TODO - disable cheats when finished
+        if(isDebuging)
+        {
+            RespondToDebugKeys(); // TODO - disable cheats when finished
+        }
     }
 
     // TODO - disable cheats when finished
@@ -42,14 +47,14 @@ public class CollisionHandler : MonoBehaviour
 
     private void OnCollisionEnter(Collision other)
     {
-        if (isTransitioning || collisionDisabled)
+        if (isTransitioning || collisionDisabled) // Hold off other coroutines or cheat enabled
         {
             return;
         }
         switch (other.gameObject.tag)
         {
             case "Friendly":
-                // Extra game feature - maybe resting area?
+                // Extra game feature - maybe resting area in a bigger map?
                 break;
             case "Finish":
                 StartCoroutine(LoadNextLevel());
@@ -62,30 +67,40 @@ public class CollisionHandler : MonoBehaviour
 
     IEnumerator StartCrashSequence()
     {
-        isTransitioning = true;
+        isTransitioning = true; // disable other coroutines
         GetComponent<RocketMovement>().enabled = false;
         audioSource.Stop();
         audioSource.PlayOneShot(crashSound);
         crashParticles.Play();
+        numOfCrashes++;
+        
         yield return new WaitForSeconds(reloadDelay);
         ReloadLevel();
+
         GetComponent<RocketMovement>().enabled = true;
-        isTransitioning = false;
+        isTransitioning = false; // enable other coroutines 
     }
 
     IEnumerator LoadNextLevel()
     {
-        isTransitioning = true;
+        isTransitioning = true; // disable other coroutines
         GetComponent<RocketMovement>().enabled = false;
         audioSource.Stop();
         audioSource.PlayOneShot(successSound);
         successParticles.Play();
+
         yield return new WaitForSeconds(reloadDelay);
+        // Calculate next scene index and load
         int NumOfLevels = SceneManager.sceneCountInBuildSettings;
         int nextSceneIndex = (SceneManager.GetActiveScene().buildIndex + 1) % NumOfLevels;
         SceneManager.LoadScene(nextSceneIndex);
+        if(nextSceneIndex == 0)
+        {
+            numOfCrashes = 0;
+        }
+
         GetComponent<RocketMovement>().enabled = true;
-        isTransitioning = false;
+        isTransitioning = false; // enable other coroutines 
     }
 
     private void ReloadLevel()

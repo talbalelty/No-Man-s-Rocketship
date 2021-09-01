@@ -8,6 +8,7 @@ public class RocketMovement : MonoBehaviour
     [SerializeField] ParticleSystem mainEngineParticles;
     [SerializeField] ParticleSystem rightEngineParticles;
     [SerializeField] ParticleSystem leftEngineParticles;
+
     private Rigidbody rb;
     private AudioSource audioSource;
 
